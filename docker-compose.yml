@@ -1,0 +1,66 @@
+version: "3.8"
+
+services:
+  backend:
+    build: ./backend
+    container_name: smart-dine-backend
+    restart: unless-stopped
+    depends_on:
+      - database
+      - redis
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@database:5432/smart_dine
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
+      STORAGE_BUCKET: ${STORAGE_BUCKET}
+      STORAGE_ENDPOINT: ${STORAGE_ENDPOINT}
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY}
+      PAYMENT_PROVIDER_KEY: ${PAYMENT_PROVIDER_KEY}
+      PAYMENT_PROVIDER_SECRET: ${PAYMENT_PROVIDER_SECRET}
+      AI_API_KEY: ${AI_API_KEY}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+
+  database:
+    image: postgres:15
+    container_name: smart-dine-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: smart_dine
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/migrations:/docker-entrypoint-initdb.d
+
+  redis:
+    image: redis:7-alpine
+    container_name: smart-dine-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  nginx:
+    image: nginx:alpine
+    container_name: smart-dine-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:
